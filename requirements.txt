@@ -1,0 +1,12 @@
+Flask
+Flask-SQLAlchemy
+python-decouple
+SQLAlchemy
+mysqlclient
+gunicorn
+python-dotenv
+PyJWT
+flasgger
+markupsafe
+geopy
+flask-cors
