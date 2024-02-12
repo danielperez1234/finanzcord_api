@@ -16,8 +16,8 @@ def jwt_required(f):
         if not token:
             return jsonify({'message': 'Token faltante'}), 401
 
-        token = token.split("Bearer ")[1]
-
+        token = token.split(" ")[1]
+        print(token)
         try:
             data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])  # Corrige esta línea
         except jwt.ExpiredSignatureError:

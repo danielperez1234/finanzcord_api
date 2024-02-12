@@ -12,16 +12,16 @@ cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 app.json.sort_keys = False
-app.config['SQLALCHEMY_DATABASE_URI'] = config('SQLALCHEMY_DATABASE_URI')
+app.config['SQLALCHEMY_DATABASE_URI'] ='mysql://root:123456@127.0.0.1:3306/finanzcord'
 SECRET_KEY = config('SECRET_KEY')
-
+print(config('SQLALCHEMY_DATABASE_URI'))
 
 swagger = Swagger(app)
 
 db = SQLAlchemy(app)
 
 # Importa las rutas de usuario
-from routes.user import user_bp
+from api.routes.user import user_bp
 
 
 
