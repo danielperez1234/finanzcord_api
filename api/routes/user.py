@@ -236,7 +236,7 @@ def login():
         return jsonify(
             {
                 "message": "Inicio de sesión exitoso",
-                "user_id": user.iduser,
+                "user_id": user.id,
                 "name": user.name,
                 "token": token,
                 "email":email
@@ -284,7 +284,7 @@ def list_users(data):
     # Crea una lista de diccionarios con la información de cada usuario
     user_list = []
     for user in users:
-        user_info = {"user_id": user.iduser, "name": user.name, "email": user.email}
+        user_info = {"user_id":user.id, "name": user.name, "email": user.email}
         user_list.append(user_info)
 
     return jsonify(user_list)
@@ -336,7 +336,7 @@ def get_user_by_id(data, user_id):
             return jsonify({"error": "Usuario no encontrado"}), 404
 
         # Crear un diccionario con los datos del usuario
-        user_info = {"user_id": user.iduser, "name": user.name, "email": user.email}
+        user_info = {"user_id":user.id, "name": user.name, "email": user.email}
 
         return jsonify(user_info), 200
 
@@ -396,10 +396,10 @@ def delete_user(data, user_id):
         if user.email != tokenDe['email']:
           return jsonify({"message": "Este no es su usuario."}), 403
 
-        if user.iduser == 1:
+        if user.id == 1:
             return jsonify({"message": "No se permite eliminar al admin"}), 403
         # Cambia el estado is_delete a True en lugar de borrar el usuario
-        user.is_delete = True
+        user.is_delete = 1
         db.session.commit()
 
         return jsonify({"message": "Usuario eliminado exitosamente"})

@@ -14,20 +14,24 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 app.json.sort_keys = False
 app.config['SQLALCHEMY_DATABASE_URI'] ='mysql://root:123456@127.0.0.1:3306/finanzcord'
 SECRET_KEY = config('SECRET_KEY')
-print(config('SQLALCHEMY_DATABASE_URI'))
-
 swagger = Swagger(app)
 
 db = SQLAlchemy(app)
 
 # Importa las rutas de usuario
 from api.routes.user import user_bp
+from api.routes.category import category_bp
+from api.routes.payment_method import payment_method_bp
+from api.routes.expense import expense_bp
 
 
 
 
 # Registra las rutas de usuario
 app.register_blueprint(user_bp, url_prefix='/user')
+app.register_blueprint(category_bp, url_prefix='/category')
+app.register_blueprint(payment_method_bp, url_prefix='/payment_method')
+app.register_blueprint(expense_bp, url_prefix='/expense')
 
 
 
