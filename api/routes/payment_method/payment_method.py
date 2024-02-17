@@ -8,8 +8,8 @@ from decouple import config
 
 payment_method_bp = Blueprint("payment_method", __name__)
 SECRET_KEY = config("SECRET_KEY")
-
-
+from api.routes.payment_method.catalog import catalog_bp
+payment_method_bp.register_blueprint(catalog_bp, url_prefix='/catalog')
 @payment_method_bp.route("/", methods=["GET"])
 @jwt_required
 def list_payment_methods(data):
@@ -174,7 +174,7 @@ def create_payment_method(data):
         user = User.query.filter_by(email=tokenDe['email']).first()
     
         new_payment_method = PaymentMethod(
-            name=name, description=description, iduser=user.id
+            name=name, description=description, iduser=user.id, is_delete=0
         )
 
         db.session.add(new_payment_method)
@@ -242,7 +242,7 @@ def update_payment_method(data,payment_method_id):
         tokenDe = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
         user = User.query.filter_by(email=tokenDe['email']).first()
     
-        payment_method = PaymentMethod.query.get(payment_method_id)
+        payment_method = PaymentMethod.query.filter_by(id=payment_method_id).first()
         if payment_method.iduser != user.id:
             return jsonify({"error": "Metodo de pago ajeno"}), 403
 
@@ -298,7 +298,7 @@ def delete_payment_method(data, payment_method_id):
         tokenDe = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
         user = User.query.filter_by(email=tokenDe['email']).first()
     
-        payment_method = PaymentMethod.query.get(payment_method_id)
+        payment_method = PaymentMethod.query.find(id=payment_method_id)
         if payment_method.iduser != user.id:
             return jsonify({"error": "Metodo de pago ajeno"}), 403
         if not payment_method:

@@ -20,8 +20,8 @@ db = SQLAlchemy(app)
 
 # Importa las rutas de usuario
 from api.routes.user import user_bp
-from api.routes.category import category_bp
-from api.routes.payment_method import payment_method_bp
+from api.routes.category.category import category_bp
+from api.routes.payment_method.payment_method import payment_method_bp
 from api.routes.expense import expense_bp
 
 

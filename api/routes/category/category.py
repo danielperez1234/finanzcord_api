@@ -11,7 +11,8 @@ SECRET_KEY = config("SECRET_KEY")
 
 from api.middleware.middleware import jwt_required
 
-
+from api.routes.category.catalog import catalog_bp
+category_bp.register_blueprint(catalog_bp, url_prefix='/catalog')
 
 @category_bp.route("/", methods=["GET"])
 @jwt_required
@@ -129,7 +130,7 @@ def get_category(data,category_id):
 
 @category_bp.route("/", methods=["POST"])
 @jwt_required
-def create_category():
+def create_category(date):
     """
     Create a new category
     ---
@@ -181,7 +182,7 @@ def create_category():
         tokenDe = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
         user = User.query.filter_by(email=tokenDe['email']).first()
         new_category = Category(
-            description=description, relevance=relevance, meta=meta, iduser=user.id
+            description=description, relevance=relevance, meta=meta, iduser=user.id, is_delete=0
         )
 
         db.session.add(new_category)
