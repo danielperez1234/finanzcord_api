@@ -1,4 +1,6 @@
 from flask import Blueprint, request, jsonify
+from api.models.category import Category
+from api.models.payment_method import PaymentMethod
 from app import db
 from api.models.expense import Expense  # Assuming you have an Expense model
 from api.middleware.middleware import jwt_required
@@ -12,7 +14,7 @@ SECRET_KEY = config("SECRET_KEY")
 
 @expense_bp.route("/page/<int:page>", methods=["GET"])
 @jwt_required
-def list_expenses(data,page):
+def list_expenses(data, page):
     """
     List all expenses
     ---
@@ -63,7 +65,7 @@ def list_expenses(data,page):
             "id": expense.id,
             "concept": expense.concept,
             "idcategory": expense.idcategory,
-            "amount": expense.amount,
+            "amount": float(expense.amount),
             "description": expense.description,
             "created_at": str(expense.created_at),
             "updated_at": str(expense.updated_at),
@@ -76,9 +78,96 @@ def list_expenses(data,page):
     return jsonify(expense_list)
 
 
+@expense_bp.route("/page/<int:page>/last-page/<int:lastpage>", methods=["GET"])
+@jwt_required
+def list_expensesByPage(data, page, lastpage):
+    """
+    List all expenses
+    ---
+    responses:
+      200:
+        description: List of expenses.
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: Expense ID.
+              concept:
+                type: string
+                description: Concept of the expense.
+              idcategory:
+                type: integer
+                description: Category ID of the expense.
+              amount:
+                type: float
+                description: Amount of the expense.
+              description:
+                type: string
+                description: Description of the expense.
+              created_at:
+                type: string
+                description: Timestamp when the expense was created.
+              updated_at:
+                type: string
+                description: Timestamp when the expense was last updated.
+              date:
+                type: string
+                description: Date of the expense.
+              idpayment:
+                type: integer
+                description: Payment method ID of the expense.
+              priority:
+                type: integer
+                description: Priority of the expense.
+    """
+    expenses = filterExpenseUserRange(request, page, lastpage)
+    expense_list = []
+    categories = filterCategoryUser(request)
+    payments = filterPaymentMethodUser(request)
+    for expense in expenses:
+        print(expense.idpayment)
+        payment = next(
+            (obj for obj in payments if obj.id == expense.idpayment), None)
+        category = next((obj for obj in categories if obj.id ==
+                        expense.idcategory), None)
+        expense_info = {
+            "id": expense.id,
+            "concept": expense.concept,
+            "idcategory": expense.idcategory,
+            "category": {
+            "id": category.id,
+            "description": category.description,
+            "relevance": category.relevance,
+            "meta": category.meta,
+            "created_at": str(category.created_at),
+            "updated_at": str(category.updated_at),
+        },
+            "amount": float(expense.amount),
+            "description": expense.description,
+            "created_at": str(expense.created_at),
+            "updated_at": str(expense.updated_at),
+            "date": str(expense.date),
+            "idpayment": expense.idpayment,
+            "payment": {
+                "id": payment.id,
+                "name": payment.name,
+                "description": payment.description,
+                "created_at": str(payment.created_at),
+                "updated_at": str(payment.updated_at),
+            },
+            "priority": expense.priority,
+        }
+        expense_list.append(expense_info)
+
+    return jsonify(expense_list)
+
+
 @expense_bp.route("/<int:expense_id>", methods=["GET"])
 @jwt_required
-def get_expense(data,expense_id):
+def get_expense(data, expense_id):
     """
     Get expense by ID
     ---
@@ -141,7 +230,7 @@ def get_expense(data,expense_id):
     expense = Expense.query.get(expense_id)
     if expense.iduser != user.id:
         return jsonify({"error": "Gasto ajeno"}), 403
-    
+
     if not expense:
         return jsonify({"error": "Expense not found"}), 404
 
@@ -222,7 +311,7 @@ def create_expense(data):
         token = request.headers.get('Authorization').split(' ')[1]
         tokenDe = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
         user = User.query.filter_by(email=tokenDe['email']).first()
-      
+
         data = request.get_json()
         concept = data.get("concept")
         idcategory = data.get("idcategory")
@@ -255,7 +344,7 @@ def create_expense(data):
 
 @expense_bp.route("/<int:expense_id>", methods=["PUT"])
 @jwt_required
-def update_expense(data,expense_id):
+def update_expense(data, expense_id):
     """
     Update expense by ID
     ---
@@ -328,7 +417,7 @@ def update_expense(data,expense_id):
         token = request.headers.get('Authorization').split(' ')[1]
         tokenDe = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
         user = User.query.filter_by(email=tokenDe['email']).first()
-    
+
         expense = Expense.query.get(expense_id)
         if expense.iduser != user.id:
             return jsonify({"error": "Gasto ajeno"}), 403
@@ -354,7 +443,7 @@ def update_expense(data,expense_id):
 
 @expense_bp.route("/<int:expense_id>", methods=["DELETE"])
 @jwt_required
-def delete_expense(data,expense_id):
+def delete_expense(data, expense_id):
     """
     Delete expense by ID
     ---
@@ -387,11 +476,10 @@ def delete_expense(data,expense_id):
         token = request.headers.get('Authorization').split(' ')[1]
         tokenDe = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
         user = User.query.filter_by(email=tokenDe['email']).first()
-    
+
         expense = Expense.query.get(expense_id)
         if expense.iduser != user.id:
             return jsonify({"error": "Gasto ajeno"}), 403
-        
 
         if not expense:
             return jsonify({"error": "Expense not found"}), 404
@@ -404,10 +492,40 @@ def delete_expense(data,expense_id):
     except Exception as e:
         return jsonify({"error": "Error deleting expense: " + str(e)}), 500
 
+
 def filterExpenseUser(request, page):
+    token = request.headers.get('Authorization').split(' ')[1]
+    tokenDe = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+    user = User.query.filter_by(email=tokenDe['email']).first()
+    per_page = 100
+    expense = Expense.query.order_by(Expense.date.desc()).filter_by(
+        iduser=user.id).paginate(page=page, per_page=per_page, error_out=False)
+    return expense
+
+
+def filterExpenseUserRange(request, page, lastpage):
+    token = request.headers.get('Authorization').split(' ')[1]
+    tokenDe = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+    user = User.query.filter_by(email=tokenDe['email']).first()
+    per_page = 100 * lastpage - page + 1
+    expense = Expense.query.order_by(Expense.date.desc()).filter_by(
+        iduser=user.id).paginate(page=page, per_page=per_page, error_out=False)
+    return expense
+
+
+def filterCategoryUser(request):
   token = request.headers.get('Authorization').split(' ')[1]
   tokenDe = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
   user = User.query.filter_by(email=tokenDe['email']).first()
-  per_page = 100
-  expense = Expense.query.order_by(Expense.date.desc()).filter_by(iduser=user.id).paginate(page=page,per_page=per_page,error_out=False)
-  return expense
+    
+  categories = Category.query.filter_by(iduser=user.id, is_delete=0)
+  return categories
+
+
+def filterPaymentMethodUser(request):
+    token = request.headers.get('Authorization').split(' ')[1]
+    tokenDe = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+    user = User.query.filter_by(email=tokenDe['email']).first()
+
+    paymentMethod = PaymentMethod.query.filter_by(iduser=user.id)
+    return paymentMethod
